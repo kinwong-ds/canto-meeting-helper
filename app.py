@@ -348,7 +348,7 @@ if uploaded_file is not None:
             # Now we can move on without spinners
             with st.expander("View Raw Transcription", expanded=False):
                 st.text_area("Raw Transcribed Text", st.session_state.transcribed_text, height=200)
-            
+
             # Refine spoken text
             with st.spinner("Refining spoken Cantonese text..."):
                 st.session_state.refined_spoken_text = refine_cantonese(st.session_state.transcribed_text, GEMINI_API_KEY)
@@ -366,9 +366,17 @@ if uploaded_file is not None:
             # Refine written text
             with st.spinner("Refining written Chinese..."):
                 st.session_state.refined_written_text = refine_written_text(st.session_state.written_text, GEMINI_API_KEY)
-            
+
+            # Generate unique filename for written text
+            written_text_filename = f"written_text_{uuid.uuid4()}.txt"
+            st.session_state.written_text_path = os.path.join(st.session_state.temp_directory, written_text_filename)
+
+            # Write refined written text to file
+            with open(st.session_state.written_text_path, "w", encoding="utf-8") as f:
+                f.write(st.session_state.refined_written_text)
+
             st.text_area("Final Written Chinese Text", st.session_state.refined_written_text, height=300)
-            
+
             st.session_state.processing_complete = True
         else:
             st.error("Transcription failed. Please check your API key and try again.")
@@ -377,48 +385,65 @@ if uploaded_file is not None:
 if st.session_state.processing_complete:
     # Transcription section is already displayed above when processing completes
     # This ensures it persists even when moving to other sections
-    
+    with st.expander("View Raw Transcription", expanded=False):
+        st.text_area("Raw Transcribed Text", st.session_state.transcribed_text, height=200, key="raw_transcribed_persist")
+
+    with st.expander("View Refined Spoken Text", expanded=False):
+        st.text_area("Refined Spoken Cantonese", st.session_state.refined_spoken_text, height=200, key="refined_spoken_persist")
+
+    with st.expander("View Written Chinese", expanded=False):
+        st.text_area("Written Chinese (First Pass)", st.session_state.written_text, height=200, key="written_chinese_persist")
+
+    st.text_area("Final Written Chinese Text", st.session_state.refined_written_text, height=300, key="final_written_persist")
+
     # Section 3: Summarization
     st.header("3️⃣ Summarization")
-    
+
     col1, col2 = st.columns(2)
     with col1:
         summary_format = st.radio("Summary Format", ["Paragraph Style", "Bullet Points"])
     with col2:
-        detail_level = st.slider("Detail Level", min_value=1, max_value=5, value=3, 
+        detail_level = st.slider("Detail Level", min_value=1, max_value=5, value=3,
                                help="1 = Most concise, 5 = Most detailed")
-    
+
     use_bullets = summary_format == "Bullet Points"
-    
+
     if st.button("Generate Summary"):
         with st.spinner("Generating summary..."):
-            st.session_state.summary_text = summarize_refined_written(
-                st.session_state.refined_written_text, 
-                GEMINI_API_KEY, 
-                sum_lvl=detail_level, 
-                bullet_points=use_bullets
-            )
-            
+            # Read from the saved file
+            if os.path.exists(st.session_state.written_text_path):
+                with open(st.session_state.written_text_path, "r", encoding="utf-8") as f:
+                    written_text_for_summary = f.read()
+
+                st.session_state.summary_text = summarize_refined_written(
+                    written_text_for_summary,
+                    GEMINI_API_KEY,
+                    sum_lvl=detail_level,
+                    bullet_points=use_bullets
+                )
+            else:
+                st.error("Error: Written text file not found.") # Should not happen, but good to have a check
+
         st.markdown("### Summary")
         st.markdown(st.session_state.summary_text)
 
-# Section 4: Save Output
-if st.session_state.summary_text:
-    st.header("4️⃣ Save Output")
-    
-    # Use the filename from session state
-    default_filename = f"{st.session_state.current_filename}_summary" if st.session_state.current_filename else "audio_summary"
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        output_format = st.selectbox("Output Format", ["md", "txt"])
-    with col2:
-        filename = st.text_input("Filename", value=default_filename)
-    
-    if st.button("Generate Download Link"):
-        download_link = create_download_link(st.session_state.summary_text, filename, output_format)
-        if download_link:
-            st.markdown(download_link, unsafe_allow_html=True)
+    # Section 4: Save Output
+    if st.session_state.summary_text:
+        st.header("4️⃣ Save Output")
+
+        # Use the filename from session state
+        default_filename = f"{st.session_state.current_filename}_summary" if st.session_state.current_filename else "audio_summary"
+
+        col1, col2 = st.columns(2)
+        with col1:
+            output_format = st.selectbox("Output Format", ["md", "txt"])
+        with col2:
+            filename = st.text_input("Filename", value=default_filename)
+
+        if st.button("Generate Download Link"):
+            download_link = create_download_link(st.session_state.summary_text, filename, output_format)
+            if download_link:
+                st.markdown(download_link, unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
