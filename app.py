@@ -408,9 +408,12 @@ if uploaded_file is not None:
     # Create conversion button
     if st.button("Process Audio"):
         # Convert to WAV
+        cat_image = st.empty()
         with st.spinner("Converting audio format..."):
+            cat_image.image("img/cat-0.gif", caption="Converting audio format...")
             temp_wav_path = os.path.join(st.session_state.temp_directory, f"{file_name}.wav")
             convert_audio_to_wav(temp_input_path, temp_wav_path)
+        cat_image.empty()
         
         # Create a directory for chunks
         chunks_dir = os.path.join(st.session_state.temp_directory, f"chunks_{file_name}")
@@ -420,7 +423,7 @@ if uploaded_file is not None:
         st.subheader("Splitting audio into chunks")
         splitting_cat_image = st.empty()
         with st.spinner("Splitting audio into chunks..."):
-            splitting_cat_image.image("img/slow-cat.gif", caption="Splitting audio into chunks...")
+            splitting_cat_image.image("img/cat-1.gif", caption="Splitting audio into chunks...")
             chunk_paths = split_audio_by_silence(temp_wav_path, chunks_dir)
         splitting_cat_image.empty()
 
@@ -440,22 +443,28 @@ if uploaded_file is not None:
                 st.text_area("Raw Transcribed Text", st.session_state.transcribed_text, height=200)
 
             # Refine spoken text
-            with st.spinner("Refining spoken Cantonese text..."):
-                st.session_state.refined_spoken_text = refine_cantonese(st.session_state.transcribed_text, GEMINI_API_KEY)
-            
+            cat_image_2 = st.empty()
+            cat_image_2.image("img/cat-2.gif", caption="Refining spoken Cantonese text...")
+            st.session_state.refined_spoken_text = refine_cantonese(st.session_state.transcribed_text, GEMINI_API_KEY)
+            cat_image_2.empty()
+
             with st.expander("View Refined Spoken Text", expanded=False):
                 st.text_area("Refined Spoken Cantonese", st.session_state.refined_spoken_text, height=200)
-            
+
             # Convert to written Chinese
-            with st.spinner("Converting to written Chinese..."):
-                st.session_state.written_text = speech_to_written(st.session_state.refined_spoken_text, GEMINI_API_KEY)
-            
+            cat_image_3 = st.empty()
+            cat_image_3.image("img/cat-3.gif", caption="Converting to written Chinese...")
+            st.session_state.written_text = speech_to_written(st.session_state.refined_spoken_text, GEMINI_API_KEY)
+            cat_image_3.empty()
+
             with st.expander("View Written Chinese", expanded=False):
                 st.text_area("Written Chinese (First Pass)", st.session_state.written_text, height=200)
-            
+
             # Refine written text
-            with st.spinner("Refining written Chinese..."):
-                st.session_state.refined_written_text = refine_written_text(st.session_state.written_text, GEMINI_API_KEY)
+            cat_image_4 = st.empty()
+            cat_image_4.image("img/cat-4.gif", caption="Refining written Chinese...")
+            st.session_state.refined_written_text = refine_written_text(st.session_state.written_text, GEMINI_API_KEY)
+            cat_image_4.empty()
 
             # Generate unique filename for written text
             written_text_filename = f"written_text_{uuid.uuid4()}.txt"
@@ -499,8 +508,10 @@ if st.session_state.processing_complete:
     use_bullets = summary_format == "Bullet Points"
 
     if st.button("Generate Summary"):
+        cat_image_6 = st.empty()
         with st.spinner("Generating summary..."):
             # Read from the saved file
+            cat_image_6.image("img/cat-6.gif", caption="Generating summary...")
             if os.path.exists(st.session_state.written_text_path):
                 with open(st.session_state.written_text_path, "r", encoding="utf-8") as f:
                     written_text_for_summary = f.read()
@@ -515,6 +526,8 @@ if st.session_state.processing_complete:
                 bullet_points=use_bullets,
                 output_format=output_format if 'output_format' in locals() else "md"
             )
+        cat_image_6.empty()
+
 
         st.markdown("### Summary")
         st.markdown(st.session_state.summary_text)
