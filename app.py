@@ -518,6 +518,8 @@ if st.session_state.processing_complete:
     use_bullets = summary_format == "Bullet Points"
 
     if st.button("Generate Summary"):
+        # Initialize output_format with a default value
+        output_format = "md"
         cat_image_6 = st.empty()
         with st.spinner("Generating summary..."):
             # Read from the saved file
