@@ -33,8 +33,18 @@ st.set_page_config(
 load_dotenv()
 
 # Section: Sidebar Configuration
-st.sidebar.title("🎙️ 明沼沼翻譯機")
-st.sidebar.markdown("好似唔明，但又好似聽得明的翻譯機")
+with st.sidebar:
+    st.title("🎙️ 明沼沼翻譯機")
+    st.markdown("好似唔明，但又好似聽得明的翻譯機")
+    st.markdown("未來優化: ")
+
+    # Dynamically add sidebar items
+    sidebar_items = ["修復重複的摘要輸出", 
+                     "Add Option to give feedback on transcribed_text for 嚟修正AI錯誤", 
+                     "Add more input format"]
+    for item in sidebar_items:
+        st.markdown(f"- {item}")
+
 
 # Get API keys
 HF_API_KEY = os.environ.get("HF_API_KEY", "")
