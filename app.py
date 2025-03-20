@@ -232,7 +232,7 @@ def transcribe_with_gemini(audio_chunk_paths, api_key):
         st.error(f"Error with Gemini transcription: {str(e)}")
         return None
 
-def gemini_prompt_call(message, api_key, prompt, temperature=0.3, top_p=0.8):
+def gemini_prompt_call(message, api_key, prompt, temperature=0.2, top_p=0.7):
     """Generic function for Gemini API prompts"""
     try:
         genai.configure(api_key=api_key)
@@ -425,8 +425,11 @@ if uploaded_file is not None:
         st.subheader("2️⃣ Transcription")
         
         # Transcribing
-        with st.spinner("Transcribing audio..."):
+        cat_image = st.empty()
+        with st.spinner("幫緊你 幫緊你..."):
+            cat_image.image("img/cat.gif", caption="Transcribing audio...")
             st.session_state.transcribed_text = transcribe_with_gemini(chunk_paths, GEMINI_API_KEY)
+        cat_image.empty()
         
         if st.session_state.transcribed_text:
             # Now we can move on without spinners
