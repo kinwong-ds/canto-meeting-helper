@@ -17,3 +17,6 @@ tqdm
 transformers
 wave
 ffmpeg
+python-docx
+markdown
+beautifulsoup4

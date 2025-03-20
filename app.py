@@ -18,8 +18,13 @@ from scipy.signal import medfilt
 import google.generativeai as genai
 from dotenv import load_dotenv
 
+import markdown
+from docx import Document
+from docx.shared import Inches
+from bs4 import BeautifulSoup
+
 st.set_page_config(
-    page_title="Cantonese Audio Transcriber",
+    page_title="明沼沼翻譯機",
     page_icon="🎙️",
     layout="wide"
 )
@@ -28,8 +33,8 @@ st.set_page_config(
 load_dotenv()
 
 # Section: Sidebar Configuration
-st.sidebar.title("🎙️ Cantonese Audio Transcriber")
-st.sidebar.markdown("Process Cantonese audio recordings into text and summaries.")
+st.sidebar.title("🎙️ 明沼沼翻譯機")
+st.sidebar.markdown("好似唔明，但又好似聽得明的翻譯機")
 
 # Get API keys
 HF_API_KEY = os.environ.get("HF_API_KEY", "")
@@ -275,17 +280,27 @@ def refine_written_text(message, api_key):
             """
     return gemini_prompt_call(message, api_key, prompt, temperature=1)
 
-def summarize_refined_written(message, api_key, sum_lvl, bullet_points=False):
+def summarize_refined_written(message, api_key, sum_lvl, bullet_points=False, output_format="md"):
     """Summarize text with customizable level of detail"""
-    if bullet_points:
-        prompt = f"""Summarize the given Chinese text and output in Traditional Chinese (zh) markdown format with bullet points and sectioned format. 
-        Use detail level {sum_lvl}, where 1 is the most concise and 5 is the most detailed. 
-        Retain key information and context while ensuring clarity, coherence, and fluency."""
+    if output_format == "docx":
+        if bullet_points:
+            prompt = f"""Summarize the given Chinese text and output in Traditional Chinese (zh) with bullet points and sectioned format. 
+            Use detail level {sum_lvl}, where 1 is the most concise and 5 is the most detailed. 
+            Retain key information and context while ensuring clarity, coherence, and fluency."""
+        else:
+            prompt = f"""Summarize the given Chinese text and output in Traditional Chinese (zh) at summarization level {sum_lvl}, 
+            where 1 is the most concise and 5 is the most detailed. 
+            Retain key information and context while ensuring clarity, coherence, and fluency."""
     else:
-        prompt = f"""Summarize the given Chinese text and output in Traditional Chinese (zh) markdown format at summarization level {sum_lvl}, 
-        where 1 is the most concise and 5 is the most detailed. 
-        Retain key information and context while ensuring clarity, coherence, and fluency."""
-        
+        if bullet_points:
+            prompt = f"""Summarize the given Chinese text and output in Traditional Chinese (zh) markdown format with bullet points and sectioned format. 
+            Use detail level {sum_lvl}, where 1 is the most concise and 5 is the most detailed. 
+            Retain key information and context while ensuring clarity, coherence, and fluency."""
+        else:
+            prompt = f"""Summarize the given Chinese text and output in Traditional Chinese (zh) markdown format at summarization level {sum_lvl}, 
+            where 1 is the most concise and 5 is the most detailed. 
+            Retain key information and context while ensuring clarity, coherence, and fluency."""
+
     return gemini_prompt_call(message, api_key, prompt)
 
 def create_download_link(content, filename, format_type):
@@ -300,11 +315,79 @@ def create_download_link(content, filename, format_type):
         b64 = base64.b64encode(content.encode()).decode()
         return f'<a href="data:text/plain;base64,{b64}" download="{filename}.txt">Download Text</a>'
     
-    # Note: For PDF and DOCX we would normally use libraries like fpdf or python-docx
-    # But for simplicity in this demo, we'll just offer markdown and txt
+    elif format_type == "docx":
+        # Create a temporary markdown file
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".md", encoding="utf-8") as tmp_md_file:
+            tmp_md_file.write(content)
+            tmp_md_path = tmp_md_file.name
+        
+        # Create a temporary docx file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx_file:
+            tmp_docx_path = tmp_docx_file.name
+        
+        # Convert markdown to docx
+        md_to_docx(tmp_md_path, tmp_docx_path)
+        
+        # Read the docx file as bytes
+        with open(tmp_docx_path, "rb") as f:
+            docx_bytes = f.read()
+        
+        # Encode to base64
+        b64 = base64.b64encode(docx_bytes).decode()
+        
+        # Clean up temporary files
+        os.remove(tmp_md_path)
+        os.remove(tmp_docx_path)
+        
+        return f'<a href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,{b64}" download="{filename}.docx">Download DOCX</a>'
+    
     else:
         st.warning(f"Format {format_type} is not fully implemented in this demo version.")
         return None
+
+import markdown
+from docx import Document
+from docx.shared import Inches
+from bs4 import BeautifulSoup
+
+def md_to_docx(md_file, docx_file):
+    """
+    Converts a markdown file to a docx file, preserving bullet points and indentation.
+
+    Args:
+        md_file (str): Path to the input markdown file.
+        docx_file (str): Path to the output docx file.
+    """
+    try:
+        with open(md_file, 'r', encoding='utf-8') as f:
+            md_content = f.read()
+
+        # Convert markdown to HTML
+        html_content = markdown.markdown(md_content, extensions=['tables', 'fenced_code'])
+
+        # Parse the HTML content using BeautifulSoup
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        # Create a new document
+        document = Document()
+
+        # Add the text to the document, preserving structure
+        for element in soup.children:
+            if element.name == 'h2':
+                document.add_heading(element.text, level=0)
+            elif element.name == 'h3':
+                document.add_heading(element.text, level=1)
+            elif element.name == 'ul' or element.name == 'ol':
+                for li in element.find_all('li'):
+                    document.add_paragraph(li.text, style='List Bullet')
+            elif element.name == 'p':
+                document.add_paragraph(element.text)
+
+        # Save the document
+        document.save(docx_file)
+
+    except Exception as e:
+        print(f"Error converting {md_file} to {docx_file}: {e}")       
 
 # Section 1: File Upload
 st.header("1️⃣ File Upload")
@@ -415,15 +498,17 @@ if st.session_state.processing_complete:
             if os.path.exists(st.session_state.written_text_path):
                 with open(st.session_state.written_text_path, "r", encoding="utf-8") as f:
                     written_text_for_summary = f.read()
-
-                st.session_state.summary_text = summarize_refined_written(
-                    written_text_for_summary,
-                    GEMINI_API_KEY,
-                    sum_lvl=detail_level,
-                    bullet_points=use_bullets
-                )
             else:
-                st.error("Error: Written text file not found.") # Should not happen, but good to have a check
+                st.error("Error: Written text file not found.")  # Should not happen, but good to have a check
+                st.stop()
+
+            st.session_state.summary_text = summarize_refined_written(
+                written_text_for_summary,
+                GEMINI_API_KEY,
+                sum_lvl=detail_level,
+                bullet_points=use_bullets,
+                output_format=output_format if 'output_format' in locals() else "md"
+            )
 
         st.markdown("### Summary")
         st.markdown(st.session_state.summary_text)
@@ -437,7 +522,7 @@ if st.session_state.processing_complete:
 
         col1, col2 = st.columns(2)
         with col1:
-            output_format = st.selectbox("Output Format", ["md", "txt"])
+            output_format = st.selectbox("Output Format", ["md", "txt", "docx"])
         with col2:
             filename = st.text_input("Filename", value=default_filename)
 
