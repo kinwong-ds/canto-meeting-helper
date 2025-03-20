@@ -335,8 +335,9 @@ if uploaded_file is not None:
         
         # Split audio into chunks
         st.subheader("Splitting audio into chunks")
-        chunk_paths = split_audio_by_silence(temp_wav_path, chunks_dir)
-        
+        with st.spinner("Splitting audio into chunks..."):
+            chunk_paths = split_audio_by_silence(temp_wav_path, chunks_dir)
+
         # Transcription
         st.subheader("2️⃣ Transcription")
         
