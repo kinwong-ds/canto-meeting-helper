@@ -418,8 +418,11 @@ if uploaded_file is not None:
         
         # Split audio into chunks
         st.subheader("Splitting audio into chunks")
+        splitting_cat_image = st.empty()
         with st.spinner("Splitting audio into chunks..."):
+            splitting_cat_image.image("img/slow-cat.gif", caption="Splitting audio into chunks...")
             chunk_paths = split_audio_by_silence(temp_wav_path, chunks_dir)
+        splitting_cat_image.empty()
 
         # Transcription
         st.subheader("2️⃣ Transcription")
