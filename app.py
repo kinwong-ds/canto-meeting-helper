@@ -40,7 +40,7 @@ with st.sidebar:
 
     # Dynamically add sidebar items
     sidebar_items = ["修復重複的摘要輸出", 
-                     "Add Option to give feedback on transcribed_text for 嚟修正AI錯誤", 
+                     "Add Option to give feedback on transcribed text to correct AI transcribed mistake", 
                      "Add more input format"]
     for item in sidebar_items:
         st.markdown(f"- {item}")
@@ -546,6 +546,9 @@ if st.session_state.processing_complete:
     if st.session_state.summary_text:
         st.header("4️⃣ Save Output")
 
+        # Initialize output_format with a default value
+        output_format = "md"
+
         # Use the filename from session state
         default_filename = f"{st.session_state.current_filename}_summary" if st.session_state.current_filename else "audio_summary"
 
@@ -562,4 +565,4 @@ if st.session_state.processing_complete:
 
 # Footer
 st.markdown("---")
-st.markdown("🎙️ Cantonese Audio Transcriber | Created with Streamlit")
+st.markdown("🎙️明沼沼翻譯機 | Kin Wong 2025")
